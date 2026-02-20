@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AO-김우진 제작</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080a0f;--bg2:#0e1118;--bg3:#141824;--bg4:#1a2030;
+  --border:#222840;--border2:#2a3250;
+  --t1:#e4e8f4;--t2:#8892b0;--t3:#4a5278;
+  --red:#dc3545;--red-g:rgba(220,53,69,0.15);
+  --blue:#3d8bfd;--amber:#e8a838;--green:#20c997;--cyan:#0dcaf0;
+  --magenta:#d63384;
+}
+body{background:var(--bg);color:var(--t1);font-family:'Noto Sans KR',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* HEADER */
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:10}
+.top-bar h1{font-size:13px;font-weight:500;letter-spacing:0.3px}
+.top-bar h1 em{color:var(--red);font-style:normal;font-weight:700}
+.top-bar .badge{font-size:10px;padding:2px 8px;border-radius:3px;background:var(--red-g);color:var(--red);font-family:'Fira Code',monospace;border:1px solid rgba(220,53,69,0.3)}
+.top-controls{display:flex;gap:6px;align-items:center}
+.top-controls button{background:var(--bg3);color:var(--t2);border:1px solid var(--border);padding:5px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s}
+.top-controls button:hover{border-color:var(--t3);color:var(--t1)}
+.top-controls button.active{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+.side-panel{width:300px;min-width:300px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.canvas-wrap{flex:1;position:relative}
+.canvas-wrap canvas{display:block}
+.right-panel{width:280px;min-width:280px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+
+/* PANELS */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px}
+.card h3{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card h3 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+.form-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.form-row:last-child{margin-bottom:0}
+.form-row label{font-size:11px;color:var(--t2);width:80px;flex-shrink:0}
+.form-row input[type=number]{width:70px;background:var(--bg);border:1px solid var(--border);color:var(--t1);padding:4px 6px;border-radius:3px;font-family:'Fira Code',monospace;font-size:11px;text-align:right}
+.form-row input[type=number]:focus{outline:none;border-color:var(--blue)}
+.form-row .unit{font-size:10px;color:var(--t3);width:30px}
+
+.btn{padding:7px 14px;border:none;border-radius:4px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s;font-weight:500}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{filter:brightness(1.15);box-shadow:0 0 12px rgba(220,53,69,0.3)}
+.btn-outline{background:transparent;color:var(--t2);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--t2);color:var(--t1)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-row{display:flex;gap:6px;margin-top:8px}
+
+/* Stain list */
+.stain-list{max-height:260px;overflow-y:auto}
+.stain-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .15s;font-size:11px}
+.stain-item:hover{background:var(--bg4)}
+.stain-item.selected{background:var(--bg4);border:1px solid var(--border2)}
+.stain-idx{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'Fira Code',monospace;flex-shrink:0;font-weight:600}
+.stain-info{flex:1;line-height:1.4}
+.stain-info .primary{color:var(--t1)}
+.stain-info .secondary{color:var(--t3);font-family:'Fira Code',monospace;font-size:10px}
+.stain-del{color:var(--t3);cursor:pointer;font-size:14px;padding:2px}
+.stain-del:hover{color:var(--red)}
+
+/* Data display */
+.data-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0}
+.data-label{font-size:11px;color:var(--t2)}
+.data-val{font-family:'Fira Code',monospace;font-size:12px;color:var(--t1)}
+.data-val.accent{color:var(--amber);font-size:16px;font-weight:500}
+.data-val.green{color:var(--green)}
+.data-val.blue{color:var(--blue)}
+
+.sep{height:1px;background:var(--border);margin:6px 0}
+
+/* Overlay HUD */
+.hud{position:absolute;bottom:14px;left:14px;background:rgba(14,17,24,0.88);border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-size:10px;color:var(--t3);backdrop-filter:blur(8px);line-height:1.7;pointer-events:none}
+.hud kbd{color:var(--amber);font-family:'Fira Code',monospace;background:var(--bg4);padding:1px 5px;border-radius:2px;border:1px solid var(--border)}
+
+.hud-top{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(14,17,24,0.85);border:1px solid var(--border);border-radius:6px;padding:6px 16px;font-size:11px;color:var(--t2);backdrop-filter:blur(8px);pointer-events:none;white-space:nowrap}
+.hud-top em{color:var(--green);font-style:normal;font-weight:600}
+
+/* Preset */
+.preset-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip{padding:3px 8px;border-radius:3px;font-size:10px;cursor:pointer;background:var(--bg);border:1px solid var(--border);color:var(--t2);transition:all .15s}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.color-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1><em>◆</em> AO 혈흔 발혈 부위 추정 &mdash; BPA 3D Origin Reconstruction</h1>
+  <div class="top-controls">
+    <div class="badge">Three.js r128</div>
+    <button id="btnStrings" class="active" onclick="toggleVis('strings',this)">역추적선</button>
+    <button id="btnPlane" class="active" onclick="toggleVis('plane',this)">수렴면</button>
+    <button id="btnOrigin" class="active" onclick="toggleVis('origin',this)">원점</button>
+    <button onclick="resetCamera()">카메라 초기화</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- LEFT PANEL -->
+  <div class="side-panel">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--red)"></span>혈흔 추가</h3>
+      <div class="form-row">
+        <label>위치 X</label>
+        <input type="number" id="inX" value="1.5" step="0.1">
+        <span class="unit">m</span>
+      </div>
+      <div class="form-row">
+        <label>위치 Z</label>
+        <input type="number" id="inZ" value="0.3" step="0.1">
+        <span class="unit">m</span>
+      </div>
+      <div class="form-row">
+        <label>장축 (a)</label>
+        <input type="number" id="inA" value="12" step="0.5" min="1">
+        <span class="unit">mm</span>
+      </div>
+      <div class="form-row">
+        <label>단축 (b)</label>
+        <input type="number" id="inB" value="6" step="0.5" min="1">
+        <span class="unit">mm</span>
+      </div>
+      <div class="form-row">
+        <label>방향각 γ</label>
+        <input type="number" id="inGamma" value="200" step="1">
+        <span class="unit">°</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-red" onclick="addStain()" style="flex:1">＋ 혈흔 추가</button>
+      </div>
+      <div class="sep"></div>
+      <h3 style="margin-top:6px"><span class="dot" style="background:var(--cyan)"></span>프리셋 시나리오</h3>
+      <div class="preset-chips">
+        <div class="chip" onclick="loadPreset('low')">저속 낙하</div>
+        <div class="chip" onclick="loadPreset('medium')">중속 비산</div>
+        <div class="chip" onclick="loadPreset('high')">고속 충격</div>
+        <div class="chip" onclick="loadPreset('cast')">캐스트오프</div>
+        <div class="chip" onclick="loadPreset('custom')">초기화</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:var(--amber)"></span>혈흔 목록 (<span id="stainCount">0</span>)</h3>
+      <div class="stain-list" id="stainList">
+        <div style="font-size:11px;color:var(--t3);padding:10px 0;text-align:center">혈흔을 추가하면 여기에 표시됩니다</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:var(--blue)"></span>역추적 설정</h3>
+      <div class="form-row">
+        <label>선 최대 높이</label>
+        <input type="number" id="inMaxH" value="3.0" step="0.1" min="0.5" max="10" onchange="rebuildScene()">
+        <span class="unit">m</span>
+      </div>
+      <div class="form-row">
+        <label>바닥 크기</label>
+        <input type="number" id="inFloorSize" value="6" step="1" min="2" max="20" onchange="rebuildScene()">
+        <span class="unit">m</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <div class="hud">
+      <kbd>좌클릭+드래그</kbd> 회전 &nbsp; <kbd>우클릭+드래그</kbd> 이동 &nbsp; <kbd>스크롤</kbd> 줌<br>
+      <kbd>바닥 클릭</kbd> 혈흔 위치 지정 &nbsp; <kbd>P</kbd> 프리셋 순환 &nbsp; <kbd>C</kbd> 카메라 초기화
+    </div>
+    <div class="hud-top" id="hudTop">혈흔을 추가하여 3D 원점 추정을 시작하세요</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--green)"></span>추정 원점 (Area of Origin)</h3>
+      <div class="data-row">
+        <span class="data-label">X (수평)</span>
+        <span class="data-val accent" id="originX">—</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Y (높이)</span>
+        <span class="data-val accent" id="originY">—</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">Z (깊이)</span>
+        <span class="data-val accent" id="originZ">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="data-row">
+        <span class="data-label">수렴점 오차</span>
+        <span class="data-val green" id="originErr">—</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">혈흔 수</span>
+        <span class="data-val blue" id="originN">0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:var(--amber)"></span>2D 수렴점 (Area of Convergence)</h3>
+      <div class="data-row">
+        <span class="data-label">수렴 X</span>
+        <span class="data-val" id="convX2d">—</span>
+      </div>
+      <div class="data-row">
+        <span class="data-label">수렴 Z</span>
+        <span class="data-val" id="convZ2d">—</span>
+      </div>
+    </div>
+
+    <div class="card" id="selectedCard" style="display:none">
+      <h3><span class="dot" style="background:var(--magenta)"></span>선택된 혈흔</h3>
+      <div class="data-row"><span class="data-label">인덱스</span><span class="data-val" id="selIdx">—</span></div>
+      <div class="data-row"><span class="data-label">위치</span><span class="data-val" id="selPos">—</span></div>
+      <div class="data-row"><span class="data-label">장축 a</span><span class="data-val" id="selA">—</span></div>
+      <div class="data-row"><span class="data-label">단축 b</span><span class="data-val" id="selB">—</span></div>
+      <div class="data-row"><span class="data-label">충돌각 α</span><span class="data-val accent" id="selAlpha">—</span></div>
+      <div class="data-row"><span class="data-label">sin(α)</span><span class="data-val" id="selSin">—</span></div>
+      <div class="data-row"><span class="data-label">방향각 γ</span><span class="data-val" id="selGamma">—</span></div>
+      <div class="data-row"><span class="data-label">역추적 높이</span><span class="data-val green" id="selH">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:var(--t3)"></span>수학적 원리</h3>
+      <div style="font-size:10px;color:var(--t3);line-height:1.8;font-family:'Fira Code',monospace">
+        sin(α) = b / a<br>
+        α = arcsin(width / length)<br><br>
+        <span style="color:var(--t2)">// 2D 수렴점</span><br>
+        x_c = Σ(tan(γ_i)·x_i - z_i) /<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Σ(tan(γ_i))<br><br>
+        <span style="color:var(--t2)">// 3D 원점 높이</span><br>
+        h = d · tan(α)<br>
+        d = 수렴점까지 수평거리
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:var(--t3)"></span>범례</h3>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><div class="color-swatch" style="background:var(--red)"></div><span class="data-label">혈흔 (타원)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><div class="color-swatch" style="background:var(--amber)"></div><span class="data-label">방향선 (장축 연장)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><div class="color-swatch" style="background:var(--cyan)"></div><span class="data-label">역추적선 (String)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><div class="color-swatch" style="background:var(--green)"></div><span class="data-label">추정 원점</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px"><div class="color-swatch" style="background:rgba(255,255,255,0.2)"></div><span class="data-label">수렴면</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+let stains = []; // {x, z, a, b, gamma, alpha, sinAlpha, color}
+let selectedIdx = -1;
+const STAIN_COLORS = ['#dc3545','#e8a838','#3d8bfd','#20c997','#d63384','#0dcaf0','#fd7e14','#6610f2','#f77f00','#8338ec'];
+
+// ===== THREE.JS SETUP =====
+let scene, camera, renderer, controls;
+let floorMesh, gridHelper;
+let stringGroup, stainGroup, originGroup, convergePlane;
+let raycaster, mouse;
+
+function initThree() {
+  const wrap = document.getElementById('canvasWrap');
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x080a0f);
+  scene.fog = new THREE.FogExp2(0x080a0f, 0.08);
+
+  camera = new THREE.PerspectiveCamera(50, w / h, 0.05, 100);
+  camera.position.set(4, 3.5, 5);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  wrap.appendChild(renderer.domElement);
+
+  // Orbit controls (manual implementation since we can't import OrbitControls)
+  initManualControls(renderer.domElement);
+
+  // Lights
+  const ambLight = new THREE.AmbientLight(0x334466, 0.6);
+  scene.add(ambLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  dirLight.position.set(5, 8, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(1024, 1024);
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 30;
+  dirLight.shadow.camera.left = -10;
+  dirLight.shadow.camera.right = 10;
+  dirLight.shadow.camera.top = 10;
+  dirLight.shadow.camera.bottom = -10;
+  scene.add(dirLight);
+
+  const pointLight = new THREE.PointLight(0xff4444, 0.3, 15);
+  pointLight.position.set(0, 4, 0);
+  scene.add(pointLight);
+
+  // Floor
+  const floorSize = parseFloat(document.getElementById('inFloorSize').value);
+  const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x12151c,
+    roughness: 0.9,
+    metalness: 0.1,
+    side: THREE.DoubleSide
+  });
+  floorMesh = new THREE.Mesh(floorGeo, floorMat);
+  floorMesh.rotation.x = -Math.PI / 2;
+  floorMesh.receiveShadow = true;
+  scene.add(floorMesh);
+
+  // Grid
+  gridHelper = new THREE.GridHelper(floorSize, floorSize * 5, 0x222840, 0x181c28);
+  scene.add(gridHelper);
+
+  // Axis helper
+  const axLen = 1.5;
+  const axX = createLine([0,0,0],[axLen,0,0], 0xdc3545, 2);
+  const axY = createLine([0,0,0],[0,axLen,0], 0x20c997, 2);
+  const axZ = createLine([0,0,0],[0,0,axLen], 0x3d8bfd, 2);
+  scene.add(axX, axY, axZ);
+
+  // Labels
+  addTextSprite('X', axLen+0.15, 0, 0, '#dc3545');
+  addTextSprite('Y(높이)', 0, axLen+0.15, 0, '#20c997');
+  addTextSprite('Z', 0, 0, axLen+0.15, '#3d8bfd');
+
+  // Groups
+  stainGroup = new THREE.Group();
+  stringGroup = new THREE.Group();
+  originGroup = new THREE.Group();
+  scene.add(stainGroup, stringGroup, originGroup);
+
+  // Raycaster for floor clicks
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  renderer.domElement.addEventListener('dblclick', onDoubleClick);
+
+  window.addEventListener('resize', onResize);
+
+  animate();
+}
+
+function createLine(from, to, color, lineWidth) {
+  const geo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(...from), new THREE.Vector3(...to)
+  ]);
+  const mat = new THREE.LineBasicMaterial({ color, linewidth: lineWidth || 1 });
+  return new THREE.Line(geo, mat);
+}
+
+function addTextSprite(text, x, y, z, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 64;
+  const ctx2 = canvas.getContext('2d');
+  ctx2.fillStyle = color || '#ffffff';
+  ctx2.font = 'bold 28px Fira Code';
+  ctx2.textAlign = 'center';
+  ctx2.fillText(text, 64, 40);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(0.5, 0.25, 1);
+  scene.add(sprite);
+}
+
+// ===== MANUAL ORBIT CONTROLS =====
+let camTheta = 0.8, camPhi = 0.9, camDist = 8;
+let camTarget = new THREE.Vector3(1.5, 0.8, 0);
+let isDragging = false, isPanning = false;
+let lastMouse = { x: 0, y: 0 };
+
+function initManualControls(domEl) {
+  domEl.addEventListener('mousedown', (e) => {
+    if (e.button === 0) isDragging = true;
+    if (e.button === 2) isPanning = true;
+    lastMouse = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+  });
+  domEl.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('mouseup', () => { isDragging = false; isPanning = false; });
+  window.addEventListener('mousemove', (e) => {
+    const dx = e.clientX - lastMouse.x;
+    const dy = e.clientY - lastMouse.y;
+    lastMouse = { x: e.clientX, y: e.clientY };
+
+    if (isDragging) {
+      camTheta -= dx * 0.005;
+      camPhi = Math.max(0.1, Math.min(Math.PI / 2 - 0.01, camPhi - dy * 0.005));
+    }
+    if (isPanning) {
+      const right = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0);
+      const forward = new THREE.Vector3().subVectors(camTarget, camera.position).normalize();
+      right.crossVectors(forward, up).normalize();
+
+      const panSpeed = 0.005 * camDist;
+      camTarget.add(right.multiplyScalar(-dx * panSpeed));
+      camTarget.y += dy * panSpeed;
+    }
+  });
+  domEl.addEventListener('wheel', (e) => {
+    camDist *= (1 + e.deltaY * 0.001);
+    camDist = Math.max(1, Math.min(30, camDist));
+    e.preventDefault();
+  }, { passive: false });
+
+  updateCam();
+}
+
+function updateCam() {
+  camera.position.set(
+    camTarget.x + camDist * Math.sin(camPhi) * Math.cos(camTheta),
+    camTarget.y + camDist * Math.cos(camPhi),
+    camTarget.z + camDist * Math.sin(camPhi) * Math.sin(camTheta)
+  );
+  camera.lookAt(camTarget);
+}
+
+function resetCamera() {
+  camTheta = 0.8; camPhi = 0.9; camDist = 8;
+  camTarget.set(1.5, 0.8, 0);
+}
+
+// ===== DOUBLE CLICK TO PLACE STAIN =====
+function onDoubleClick(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(floorMesh);
+  if (hits.length > 0) {
+    const p = hits[0].point;
+    document.getElementById('inX').value = p.x.toFixed(2);
+    document.getElementById('inZ').value = p.z.toFixed(2);
+  }
+}
+
+// ===== RESIZE =====
+function onResize() {
+  const wrap = document.getElementById('canvasWrap');
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+// ===== ADD/REMOVE STAINS =====
+function addStain() {
+  const x = parseFloat(document.getElementById('inX').value) || 0;
+  const z = parseFloat(document.getElementById('inZ').value) || 0;
+  const a = parseFloat(document.getElementById('inA').value) || 10;
+  const b = parseFloat(document.getElementById('inB').value) || 5;
+  const gamma = parseFloat(document.getElementById('inGamma').value) || 180;
+
+  if (b > a) { alert('단축(b)은 장축(a)보다 작아야 합니다.'); return; }
+
+  const sinAlpha = b / a;
+  const alpha = Math.asin(Math.min(sinAlpha, 1)) * 180 / Math.PI;
+  const color = STAIN_COLORS[stains.length % STAIN_COLORS.length];
+
+  stains.push({ x, z, a, b, gamma, alpha, sinAlpha, color });
+
+  rebuildScene();
+  updateUI();
+}
+
+function removeStain(idx) {
+  stains.splice(idx, 1);
+  if (selectedIdx === idx) selectedIdx = -1;
+  else if (selectedIdx > idx) selectedIdx--;
+  rebuildScene();
+  updateUI();
+}
+
+function selectStain(idx) {
+  selectedIdx = idx;
+  updateUI();
+}
+
+// ===== REBUILD 3D SCENE =====
+function rebuildScene() {
+  // Clear groups
+  while (stainGroup.children.length) stainGroup.remove(stainGroup.children[0]);
+  while (stringGroup.children.length) stringGroup.remove(stringGroup.children[0]);
+  while (originGroup.children.length) originGroup.remove(originGroup.children[0]);
+  if (convergePlane) { scene.remove(convergePlane); convergePlane = null; }
+
+  const maxH = parseFloat(document.getElementById('inMaxH').value) || 3;
+  const floorSize = parseFloat(document.getElementById('inFloorSize').value) || 6;
+
+  // Update floor
+  floorMesh.geometry.dispose();
+  floorMesh.geometry = new THREE.PlaneGeometry(floorSize, floorSize);
+  scene.remove(gridHelper);
+  gridHelper = new THREE.GridHelper(floorSize, floorSize * 5, 0x222840, 0x181c28);
+  scene.add(gridHelper);
+
+  // Draw each stain
+  stains.forEach((s, i) => {
+    const gammaRad = s.gamma * Math.PI / 180;
+    const alphaRad = s.alpha * Math.PI / 180;
+
+    // -- Ellipse on floor --
+    const aMeter = s.a / 1000;
+    const bMeter = s.b / 1000;
+    const ellipseScale = 15; // visual scale for visibility
+
+    const ellipseCurve = new THREE.EllipseCurve(0, 0, aMeter * ellipseScale, bMeter * ellipseScale, 0, 2 * Math.PI, false, 0);
+    const points = ellipseCurve.getPoints(64);
+    const ellipseGeo = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p.x, 0, p.y)));
+    const ellipseMat = new THREE.LineBasicMaterial({ color: new THREE.Color(s.color), linewidth: 2 });
+    const ellipseLine = new THREE.LineLoop(ellipseGeo, ellipseMat);
+    ellipseLine.position.set(s.x, 0.002, s.z);
+    ellipseLine.rotation.y = -gammaRad + Math.PI;
+    stainGroup.add(ellipseLine);
+
+    // Fill ellipse
+    const shape = new THREE.Shape();
+    const fillPts = ellipseCurve.getPoints(64);
+    shape.moveTo(fillPts[0].x, fillPts[0].y);
+    fillPts.forEach(p => shape.lineTo(p.x, p.y));
+    const fillGeo = new THREE.ShapeGeometry(shape);
+    const fillMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(s.color), transparent: true, opacity: 0.25, side: THREE.DoubleSide });
+    const fillMesh = new THREE.Mesh(fillGeo, fillMat);
+    fillMesh.rotation.x = -Math.PI / 2;
+    fillMesh.rotation.z = -gammaRad + Math.PI;
+    fillMesh.position.set(s.x, 0.001, s.z);
+    stainGroup.add(fillMesh);
+
+    // -- Direction line on floor (장축 연장) --
+    const dirLen = 2;
+    const dx = Math.cos(gammaRad);
+    const dz = Math.sin(gammaRad);
+    const dirLine = createLine(
+      [s.x, 0.003, s.z],
+      [s.x - dx * dirLen, 0.003, s.z - dz * dirLen],
+      0xe8a838, 1
+    );
+    dirLine.material.transparent = true;
+    dirLine.material.opacity = 0.5;
+    stainGroup.add(dirLine);
+
+    // Small arrow at direction
+    const arrowDir = new THREE.Vector3(-dx, 0, -dz).normalize();
+    const arrowHelper = new THREE.ArrowHelper(arrowDir, new THREE.Vector3(s.x, 0.003, s.z), 0.4, 0xe8a838, 0.08, 0.04);
+    stainGroup.add(arrowHelper);
+
+    // -- 3D String (역추적선) --
+    // From stain position upward at impact angle α in the direction γ
+    const stringLen = maxH / Math.sin(alphaRad);
+    const horizDist = stringLen * Math.cos(alphaRad);
+    const vertDist = stringLen * Math.sin(alphaRad);
+
+    const endX = s.x - dx * horizDist;
+    const endY = vertDist;
+    const endZ = s.z - dz * horizDist;
+
+    // Tube geometry for string
+    const curve = new THREE.LineCurve3(
+      new THREE.Vector3(s.x, 0.01, s.z),
+      new THREE.Vector3(endX, endY, endZ)
+    );
+    const tubeGeo = new THREE.TubeGeometry(curve, 1, 0.006, 6, false);
+    const tubeMat = new THREE.MeshBasicMaterial({ color: 0x0dcaf0, transparent: true, opacity: 0.7 });
+    const tube = new THREE.Mesh(tubeGeo, tubeMat);
+    stringGroup.add(tube);
+
+    // Dashed helper line
+    const dashGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(s.x, 0.01, s.z),
+      new THREE.Vector3(endX, endY, endZ)
+    ]);
+    const dashMat = new THREE.LineDashedMaterial({ color: 0x0dcaf0, dashSize: 0.05, gapSize: 0.03, transparent: true, opacity: 0.3 });
+    const dashLine = new THREE.Line(dashGeo, dashMat);
+    dashLine.computeLineDistances();
+    stringGroup.add(dashLine);
+
+    // Stain index label
+    addStainLabel(i + 1, s.x, 0.15, s.z, s.color);
+  });
+
+  // -- Compute convergence (2D) --
+  if (stains.length >= 2) {
+    const conv2d = compute2DConvergence();
+    if (conv2d) {
+      document.getElementById('convX2d').textContent = conv2d.x.toFixed(3) + ' m';
+      document.getElementById('convZ2d').textContent = conv2d.z.toFixed(3) + ' m';
+
+      // Convergence point marker on floor
+      const convGeo = new THREE.RingGeometry(0.03, 0.06, 32);
+      const convMat = new THREE.MeshBasicMaterial({ color: 0xe8a838, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const convMesh = new THREE.Mesh(convGeo, convMat);
+      convMesh.rotation.x = -Math.PI / 2;
+      convMesh.position.set(conv2d.x, 0.005, conv2d.z);
+      originGroup.add(convMesh);
+
+      // 3D origin height estimation
+      const origin3d = compute3DOrigin(conv2d);
+      if (origin3d) {
+        document.getElementById('originX').textContent = origin3d.x.toFixed(3) + ' m';
+        document.getElementById('originY').textContent = origin3d.y.toFixed(3) + ' m';
+        document.getElementById('originZ').textContent = origin3d.z.toFixed(3) + ' m';
+        document.getElementById('originErr').textContent = origin3d.err.toFixed(3) + ' m';
+
+        // Origin sphere
+        const sphereGeo = new THREE.SphereGeometry(0.06, 32, 32);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0x20c997, transparent: true, opacity: 0.9 });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+        sphere.position.set(origin3d.x, origin3d.y, origin3d.z);
+        originGroup.add(sphere);
+
+        // Glow
+        const glowGeo = new THREE.SphereGeometry(0.15, 32, 32);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0x20c997, transparent: true, opacity: 0.15 });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.position.copy(sphere.position);
+        originGroup.add(glow);
+
+        // Vertical dashed line from origin to floor
+        const vlineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(origin3d.x, 0, origin3d.z),
+          new THREE.Vector3(origin3d.x, origin3d.y, origin3d.z)
+        ]);
+        const vlineMat = new THREE.LineDashedMaterial({ color: 0x20c997, dashSize: 0.05, gapSize: 0.04, transparent: true, opacity: 0.5 });
+        const vline = new THREE.Line(vlineGeo, vlineMat);
+        vline.computeLineDistances();
+        originGroup.add(vline);
+
+        // Error radius ring at origin height
+        const errGeo = new THREE.RingGeometry(Math.max(0.01, origin3d.err - 0.01), origin3d.err + 0.02, 48);
+        const errMat = new THREE.MeshBasicMaterial({ color: 0x20c997, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+        const errMesh = new THREE.Mesh(errGeo, errMat);
+        errMesh.position.set(origin3d.x, origin3d.y, origin3d.z);
+        // Face camera approximately
+        errMesh.lookAt(camera.position);
+        originGroup.add(errMesh);
+
+        // Height label
+        addStainLabel('h=' + origin3d.y.toFixed(2) + 'm', origin3d.x, origin3d.y + 0.2, origin3d.z, '#20c997');
+
+        document.getElementById('hudTop').innerHTML = `추정 원점: (<em>${origin3d.x.toFixed(2)}</em>, <em>${origin3d.y.toFixed(2)}</em>, <em>${origin3d.z.toFixed(2)}</em>) m — 높이 <em>${origin3d.y.toFixed(2)}m</em> — 오차 ${origin3d.err.toFixed(3)}m`;
+      }
+
+      // Semi-transparent convergence plane
+      if (document.getElementById('btnPlane').classList.contains('active')) {
+        const planeGeo = new THREE.PlaneGeometry(1.5, maxH);
+        const planeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.04, side: THREE.DoubleSide });
+        convergePlane = new THREE.Mesh(planeGeo, planeMat);
+        convergePlane.position.set(conv2d.x, maxH / 2, conv2d.z);
+        scene.add(convergePlane);
+      }
+    }
+  }
+
+  document.getElementById('originN').textContent = stains.length;
+}
+
+function addStainLabel(text, x, y, z, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 64;
+  const ctx2 = canvas.getContext('2d');
+  ctx2.fillStyle = color;
+  ctx2.font = 'bold 26px Fira Code';
+  ctx2.textAlign = 'center';
+  ctx2.fillText(String(text), 64, 40);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(0.4, 0.2, 1);
+  stainGroup.add(sprite);
+}
+
+// ===== CONVERGENCE MATH =====
+function compute2DConvergence() {
+  // Each stain gives a line on the floor plane:
+  // direction from stain backward along gamma
+  // Line: P_i + t * D_i where D_i = (-cos(γ), -sin(γ))
+  // Find least-squares intersection
+
+  if (stains.length < 2) return null;
+
+  let A00 = 0, A01 = 0, A11 = 0, b0 = 0, b1 = 0;
+
+  stains.forEach(s => {
+    const g = s.gamma * Math.PI / 180;
+    const dx = -Math.cos(g);
+    const dz = -Math.sin(g);
+    // Normal to direction line
+    const nx = -dz;
+    const nz = dx;
+
+    A00 += nx * nx;
+    A01 += nx * nz;
+    A11 += nz * nz;
+    b0 += nx * (nx * s.x + nz * s.z);
+    b1 += nz * (nx * s.x + nz * s.z);
+  });
+
+  const det = A00 * A11 - A01 * A01;
+  if (Math.abs(det) < 1e-12) return null;
+
+  const cx = (A11 * b0 - A01 * b1) / det;
+  const cz = (A00 * b1 - A01 * b0) / det;
+
+  return { x: cx, z: cz };
+}
+
+function compute3DOrigin(conv2d) {
+  // For each stain: distance d from stain to convergence point
+  // Height h_i = d_i * tan(α_i)
+  // Take weighted average
+
+  if (stains.length < 1) return null;
+
+  let hSum = 0, wSum = 0;
+  const heights = [];
+
+  stains.forEach(s => {
+    const dx = conv2d.x - s.x;
+    const dz = conv2d.z - s.z;
+    const d = Math.sqrt(dx * dx + dz * dz);
+    const alphaRad = s.alpha * Math.PI / 180;
+    const h = d * Math.tan(alphaRad);
+
+    // Weight by sin(alpha) — higher angles give more reliable height
+    const w = Math.sin(alphaRad);
+    hSum += h * w;
+    wSum += w;
+    heights.push(h);
+  });
+
+  if (wSum < 1e-10) return null;
+
+  const avgH = hSum / wSum;
+
+  // Compute error as std of heights
+  let errSum = 0;
+  heights.forEach(h => errSum += (h - avgH) * (h - avgH));
+  const err = Math.sqrt(errSum / heights.length);
+
+  return { x: conv2d.x, y: avgH, z: conv2d.z, err };
+}
+
+// ===== UI =====
+function updateUI() {
+  const list = document.getElementById('stainList');
+  document.getElementById('stainCount').textContent = stains.length;
+
+  if (stains.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:10px 0;text-align:center">혈흔을 추가하면 여기에 표시됩니다</div>';
+    document.getElementById('selectedCard').style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = stains.map((s, i) => `
+    <div class="stain-item ${i === selectedIdx ? 'selected' : ''}" onclick="selectStain(${i})">
+      <div class="stain-idx" style="background:${s.color};color:#fff">${i + 1}</div>
+      <div class="stain-info">
+        <div class="primary">α = ${s.alpha.toFixed(1)}° &nbsp; γ = ${s.gamma}°</div>
+        <div class="secondary">(${s.x.toFixed(2)}, ${s.z.toFixed(2)}) &nbsp; ${s.a}×${s.b}mm</div>
+      </div>
+      <div class="stain-del" onclick="event.stopPropagation();removeStain(${i})">✕</div>
+    </div>
+  `).join('');
+
+  // Selected detail
+  if (selectedIdx >= 0 && selectedIdx < stains.length) {
+    const s = stains[selectedIdx];
+    document.getElementById('selectedCard').style.display = 'block';
+    document.getElementById('selIdx').textContent = '#' + (selectedIdx + 1);
+    document.getElementById('selPos').textContent = `(${s.x.toFixed(2)}, ${s.z.toFixed(2)}) m`;
+    document.getElementById('selA').textContent = s.a + ' mm';
+    document.getElementById('selB').textContent = s.b + ' mm';
+    document.getElementById('selAlpha').textContent = s.alpha.toFixed(2) + '°';
+    document.getElementById('selSin').textContent = s.sinAlpha.toFixed(4);
+    document.getElementById('selGamma').textContent = s.gamma + '°';
+
+    const conv2d = compute2DConvergence();
+    if (conv2d) {
+      const dx = conv2d.x - s.x;
+      const dz = conv2d.z - s.z;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      const h = d * Math.tan(s.alpha * Math.PI / 180);
+      document.getElementById('selH').textContent = h.toFixed(3) + ' m';
+    }
+  } else {
+    document.getElementById('selectedCard').style.display = 'none';
+  }
+}
+
+// ===== VISIBILITY TOGGLES =====
+function toggleVis(what, btn) {
+  btn.classList.toggle('active');
+  const vis = btn.classList.contains('active');
+  if (what === 'strings') stringGroup.visible = vis;
+  if (what === 'origin') originGroup.visible = vis;
+  if (what === 'plane' && convergePlane) convergePlane.visible = vis;
+  if (what === 'plane') rebuildScene();
+}
+
+// ===== PRESETS =====
+function loadPreset(name) {
+  stains = [];
+  selectedIdx = -1;
+
+  if (name === 'low') {
+    // Low velocity drip pattern - drops falling nearly vertical
+    stains = [
+      { x: 1.0, z: 0.0, a: 5.0, b: 4.5, gamma: 185, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.2, z: 0.15, a: 5.5, b: 4.8, gamma: 195, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.05, z: -0.1, a: 5.2, b: 4.6, gamma: 175, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 0.85, z: 0.05, a: 5.0, b: 4.4, gamma: 190, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.15, z: -0.05, a: 5.3, b: 4.9, gamma: 182, alpha: 0, sinAlpha: 0, color: '' },
+    ];
+  } else if (name === 'medium') {
+    // Medium velocity - impact spatter from beating
+    stains = [
+      { x: 2.0, z: 0.5, a: 10, b: 5.0, gamma: 210, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.3, z: -0.3, a: 12, b: 4.5, gamma: 195, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.8, z: 0.8, a: 9, b: 5.5, gamma: 225, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.5, z: 0.1, a: 14, b: 5.0, gamma: 200, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.5, z: -0.2, a: 11, b: 6.0, gamma: 190, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.7, z: 0.6, a: 13, b: 4.0, gamma: 215, alpha: 0, sinAlpha: 0, color: '' },
+    ];
+  } else if (name === 'high') {
+    // High velocity - gunshot-like, very elongated ellipses
+    stains = [
+      { x: 3.0, z: 0.2, a: 18, b: 3.0, gamma: 200, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.5, z: -0.5, a: 20, b: 2.5, gamma: 188, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.5, z: 0.7, a: 16, b: 3.5, gamma: 220, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.2, z: -0.8, a: 22, b: 2.0, gamma: 180, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.8, z: 1.0, a: 15, b: 3.8, gamma: 235, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.8, z: 0.0, a: 24, b: 2.2, gamma: 195, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.2, z: -0.3, a: 17, b: 4.0, gamma: 205, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.6, z: 0.9, a: 19, b: 2.8, gamma: 215, alpha: 0, sinAlpha: 0, color: '' },
+    ];
+  } else if (name === 'cast') {
+    // Cast-off pattern - arc pattern from swinging weapon
+    stains = [
+      { x: 0.5, z: 0.0, a: 14, b: 4.0, gamma: 90, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.0, z: 0.3, a: 12, b: 5.0, gamma: 85, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 1.5, z: 0.5, a: 10, b: 6.0, gamma: 75, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.0, z: 0.6, a: 9, b: 6.5, gamma: 60, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 2.5, z: 0.5, a: 11, b: 5.5, gamma: 40, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.0, z: 0.3, a: 13, b: 4.5, gamma: 20, alpha: 0, sinAlpha: 0, color: '' },
+      { x: 3.5, z: 0.0, a: 15, b: 3.5, gamma: 5, alpha: 0, sinAlpha: 0, color: '' },
+    ];
+  } else {
+    rebuildScene();
+    updateUI();
+    return;
+  }
+
+  // Compute derived values
+  stains.forEach((s, i) => {
+    s.sinAlpha = s.b / s.a;
+    s.alpha = Math.asin(Math.min(s.sinAlpha, 1)) * 180 / Math.PI;
+    s.color = STAIN_COLORS[i % STAIN_COLORS.length];
+  });
+
+  rebuildScene();
+  updateUI();
+}
+
+// ===== KEYBOARD =====
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'KeyC') resetCamera();
+  if (e.code === 'KeyP') {
+    const presets = ['low', 'medium', 'high', 'cast'];
+    const current = window._presetIdx || 0;
+    window._presetIdx = (current + 1) % presets.length;
+    loadPreset(presets[window._presetIdx]);
+  }
+});
+
+// ===== ANIMATION LOOP =====
+function animate() {
+  requestAnimationFrame(animate);
+  updateCam();
+
+  // Gentle rotation of error ring to face camera
+  originGroup.children.forEach(child => {
+    if (child.geometry && child.geometry.type === 'RingGeometry') {
+      child.lookAt(camera.position);
+    }
+  });
+
+  // Pulse origin sphere
+  originGroup.children.forEach(child => {
+    if (child.geometry && child.geometry.type === 'SphereGeometry' && child.material.opacity < 0.5) {
+      const t = performance.now() * 0.002;
+      child.scale.setScalar(1 + 0.15 * Math.sin(t));
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+
+// ===== INIT =====
+initThree();
+// Load medium preset by default
+loadPreset('medium');
+</script>
+</body>
+</html>
